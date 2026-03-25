@@ -14,11 +14,12 @@ import (
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 
+	r.LoadHTMLGlob("web/templates/*")
+	r.Static("/static", "./web/static")
+
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"service": "EcoGuardian",
-			"status":  "running",
-			"version": "0.1.0",
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"title": "EcoGuardian Dashboard",
 		})
 	})
 
@@ -30,6 +31,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	api := r.Group("/api")
 	{
+		api.GET("/info", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"service": "EcoGuardian",
+				"status":  "running",
+				"version": "0.1.0",
+			})
+		})
+
 		api.GET("/dashboard/summary", func(c *gin.Context) {
 			var sensorsCount int64
 			var readingsCount int64
@@ -68,6 +77,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			c.JSON(http.StatusOK, sensors)
 		})
 
+		api.GET("/sensors/:id", func(c *gin.Context) {
+			var sensor model.Sensor
+
+			if err := db.First(&sensor, c.Param("id")).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "sensor not found"})
+				return
+			}
+
+			c.JSON(http.StatusOK, sensor)
+		})
+
 		api.POST("/sensors", func(c *gin.Context) {
 			var sensor model.Sensor
 
@@ -98,6 +118,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 			if err := db.Preload("Sensor").Order("recorded_at desc").Limit(100).Find(&readings).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch readings"})
+				return
+			}
+
+			c.JSON(http.StatusOK, readings)
+		})
+
+		api.GET("/readings/latest", func(c *gin.Context) {
+			var readings []model.Reading
+
+			if err := db.Preload("Sensor").Order("recorded_at desc").Limit(10).Find(&readings).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch latest readings"})
 				return
 			}
 
@@ -140,8 +171,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				}
 			}
 
+			var createdReading model.Reading
+			if err := db.Preload("Sensor").First(&createdReading, reading.ID).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "reading created, but failed to load reading"})
+				return
+			}
+
 			c.JSON(http.StatusCreated, gin.H{
-				"reading":        reading,
+				"reading":        createdReading,
 				"created_alerts": alerts,
 			})
 		})
@@ -169,6 +206,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 			if err := db.Save(&alert).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update alert"})
+				return
+			}
+
+			if err := db.Preload("Sensor").First(&alert, alert.ID).Error; err != nil {
+				c.JSON(http.StatusOK, alert)
 				return
 			}
 
