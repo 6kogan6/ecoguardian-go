@@ -1,0 +1,11 @@
+.env
+*.db
+*.sqlite
+*.sqlite3
+bin/
+dist/
+tmp/
+vendor/
+.idea/
+.vscode/
+.DS_Store
