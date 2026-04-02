@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <div>
+        <h1>EcoGuardian</h1>
+        <p class="subtitle">
+          Интеллектуальный мониторинг экологических показателей
+        </p>
+      </div>
+      <div class="header-actions">
+        <button id="refreshBtn" class="button button-secondary">
+          Обновить данные
+        </button>
+        <button id="exportBtn" class="button">Экспорт</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="status-bar">
+        <div class="status-card">
+          <div class="status-label">Сервис</div>
+          <div class="status-value" id="serviceStatus">Загрузка...</div>
+        </div>
+        <div class="status-card">
+          <div class="status-label">Версия</div>
+          <div class="status-value" id="serviceVersion">—</div>
+        </div>
+        <div class="status-card">
+          <div class="status-label">Состояние</div>
+          <div class="status-value" id="healthStatus">—</div>
+        </div>
+      </section>
+
+      <section class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-title">Датчики</div>
+          <div class="summary-number" id="sensorsCount">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-title">Показания</div>
+          <div class="summary-number" id="readingsCount">0</div>
+        </div>
+        <div class="summary-card danger-card">
+          <div class="summary-title">Активные тревоги</div>
+          <div class="summary-number" id="alertsCount">0</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Симулятор датчиков</h2>
+          <span class="pill" id="simulatorBadge">unknown</span>
+        </div>
+
+        <div class="simulator-grid">
+          <div class="meta-box">
+            <div class="meta-label">Статус</div>
+            <div class="meta-value" id="simulatorStatus">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Интервал</div>
+            <div class="meta-value" id="simulatorInterval">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Последняя генерация</div>
+            <div class="meta-value" id="simulatorLastRun">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Последний пакет</div>
+            <div class="meta-value" id="simulatorLastBatch">—</div>
+          </div>
+        </div>
+
+        <div class="simulator-actions">
+          <button id="startSimulatorBtn" class="button">
+            Запустить симулятор
+          </button>
+          <button id="stopSimulatorBtn" class="button button-danger">
+            Остановить симулятор
+          </button>
+          <button id="generateOnceBtn" class="button button-secondary">
+            Сгенерировать один раз
+          </button>
+        </div>
+      </section>
+
+      <section class="grid-two">
+        <div class="panel">
+          <h2>Добавить датчик</h2>
+          <form id="sensorForm" class="form">
+            <label>
+              Название
+              <input
+                type="text"
+                id="sensorName"
+                placeholder="Air Sensor A1"
+                required
+              />
+            </label>
+
+            <label>
+              Локация
+              <input
+                type="text"
+                id="sensorLocation"
+                placeholder="Saint Petersburg Center"
+                required
+              />
+            </label>
+
+            <label>
+              Тип датчика
+              <select id="sensorType" required>
+                <option value="air">air</option>
+                <option value="water">water</option>
+                <option value="noise">noise</option>
+                <option value="weather">weather</option>
+              </select>
+            </label>
+
+            <button type="submit" class="button">Создать датчик</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Добавить показание</h2>
+          <form id="readingForm" class="form">
+            <label>
+              Датчик
+              <select id="readingSensorId" required></select>
+            </label>
+
+            <div class="grid-fields">
+              <label>
+                PM2.5
+                <input type="number" id="pm25" step="0.1" value="0" />
+              </label>
+              <label>
+                CO2
+                <input type="number" id="co2" step="0.1" value="0" />
+              </label>
+              <label>
+                Шум
+                <input type="number" id="noise" step="0.1" value="0" />
+              </label>
+              <label>
+                Температура
+                <input type="number" id="temperature" step="0.1" value="20" />
+              </label>
+              <label>
+                Влажность
+                <input type="number" id="humidity" step="0.1" value="50" />
+              </label>
+              <label>
+                pH воды
+                <input type="number" id="waterPH" step="0.1" value="7" />
+              </label>
+            </div>
+
+            <button type="submit" class="button">Отправить показание</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="grid-two">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Датчики</h2>
+            <span class="pill" id="sensorsBadge">0 шт.</span>
+          </div>
+          <div id="sensorsList" class="list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Последние показания</h2>
+            <span class="pill" id="readingsBadge">0 записей</span>
+          </div>
+          <div id="readingsList" class="list"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Тревоги</h2>
+          <span class="pill alert-pill" id="alertsBadge">0 активных</span>
+        </div>
+        <div id="alertsList" class="list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Журнал действий</h2>
+        <div id="logBox" class="log-box"></div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
