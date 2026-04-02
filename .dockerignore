@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vscode
+.idea
+ecoguardian.db
+*.db
+*.sqlite
+*.sqlite3
+tmp
+dist
+bin
+README.md

@@ -1,17 +1,17 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
 	"ecoguardian-go/internal/model"
+	"ecoguardian-go/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB) *gin.Engine {
+func SetupRouter(db *gorm.DB, simulator *service.SimulatorService) *gin.Engine {
 	r := gin.Default()
 
 	r.LoadHTMLGlob("web/templates/*")
@@ -35,7 +35,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{
 				"service": "EcoGuardian",
 				"status":  "running",
-				"version": "0.1.0",
+				"version": "0.2.0",
 			})
 		})
 
@@ -163,7 +163,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				return
 			}
 
-			alerts := buildAlerts(reading)
+			alerts := service.BuildAlerts(reading)
 			if len(alerts) > 0 {
 				if err := db.Create(&alerts).Error; err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "reading saved, but failed to create alerts"})
@@ -224,45 +224,50 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				"sent_at": time.Now(),
 			})
 		})
-	}
 
-	return r
-}
+		api.GET("/simulator/status", func(c *gin.Context) {
+			c.JSON(http.StatusOK, simulator.Status())
+		})
 
-func buildAlerts(reading model.Reading) []model.Alert {
-	alerts := make([]model.Alert, 0)
+		api.POST("/simulator/start", func(c *gin.Context) {
+			if err := simulator.Start(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start simulator"})
+				return
+			}
 
-	addAlert := func(level string, message string) {
-		alerts = append(alerts, model.Alert{
-			SensorID:  reading.SensorID,
-			Level:     level,
-			Message:   message,
-			Status:    "active",
-			CreatedAt: time.Now(),
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Simulator started",
+				"status":  simulator.Status(),
+			})
+		})
+
+		api.POST("/simulator/stop", func(c *gin.Context) {
+			if err := simulator.Stop(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to stop simulator"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Simulator stopped",
+				"status":  simulator.Status(),
+			})
+		})
+
+		api.POST("/simulator/generate-once", func(c *gin.Context) {
+			count, alerts, err := simulator.GenerateOnce()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate data"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message":          "Simulation cycle completed",
+				"generated":        count,
+				"generated_alerts": alerts,
+				"status":           simulator.Status(),
+			})
 		})
 	}
 
-	if reading.PM25 > 55 {
-		addAlert("danger", fmt.Sprintf("Critical PM2.5 level: %.2f", reading.PM25))
-	} else if reading.PM25 > 35 {
-		addAlert("warning", fmt.Sprintf("High PM2.5 level: %.2f", reading.PM25))
-	}
-
-	if reading.CO2 > 1500 {
-		addAlert("danger", fmt.Sprintf("Critical CO2 level: %.2f", reading.CO2))
-	} else if reading.CO2 > 1000 {
-		addAlert("warning", fmt.Sprintf("High CO2 level: %.2f", reading.CO2))
-	}
-
-	if reading.Noise > 85 {
-		addAlert("danger", fmt.Sprintf("Critical noise level: %.2f", reading.Noise))
-	} else if reading.Noise > 70 {
-		addAlert("warning", fmt.Sprintf("High noise level: %.2f", reading.Noise))
-	}
-
-	if reading.WaterPH > 0 && (reading.WaterPH < 6.5 || reading.WaterPH > 8.5) {
-		addAlert("warning", fmt.Sprintf("Water pH out of normal range: %.2f", reading.WaterPH))
-	}
-
-	return alerts
+	return r
 }

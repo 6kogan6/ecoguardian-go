@@ -218,9 +218,10 @@ select:focus {
   font-size: 14px;
 }
 
-.meta-grid {
+.meta-grid,
+.simulator-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin-top: 10px;
 }
@@ -241,6 +242,13 @@ select:focus {
 .meta-value {
   font-size: 16px;
   font-weight: 700;
+}
+
+.simulator-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
 }
 
 .pill {

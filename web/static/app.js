@@ -23,14 +23,23 @@ const readingSensorIdEl = document.getElementById("readingSensorId");
 const refreshBtn = document.getElementById("refreshBtn");
 const exportBtn = document.getElementById("exportBtn");
 
+const simulatorBadgeEl = document.getElementById("simulatorBadge");
+const simulatorStatusEl = document.getElementById("simulatorStatus");
+const simulatorIntervalEl = document.getElementById("simulatorInterval");
+const simulatorLastRunEl = document.getElementById("simulatorLastRun");
+const simulatorLastBatchEl = document.getElementById("simulatorLastBatch");
+
+const startSimulatorBtn = document.getElementById("startSimulatorBtn");
+const stopSimulatorBtn = document.getElementById("stopSimulatorBtn");
+const generateOnceBtn = document.getElementById("generateOnceBtn");
+
 function addLog(message) {
   const entry = document.createElement("div");
   entry.className = "log-entry";
   entry.textContent = `${new Date().toLocaleString("ru-RU")} — ${message}`;
   logBoxEl.prepend(entry);
 
-  const maxEntries = 12;
-  while (logBoxEl.children.length > maxEntries) {
+  while (logBoxEl.children.length > 12) {
     logBoxEl.removeChild(logBoxEl.lastChild);
   }
 }
@@ -97,6 +106,16 @@ async function loadSummary() {
   sensorsCountEl.textContent = summary.sensors_count;
   readingsCountEl.textContent = summary.readings_count;
   alertsCountEl.textContent = summary.active_alerts_count;
+}
+
+async function loadSimulatorStatus() {
+  const status = await request("/api/simulator/status");
+
+  simulatorBadgeEl.textContent = status.running ? "running" : "stopped";
+  simulatorStatusEl.textContent = status.running ? "Работает" : "Остановлен";
+  simulatorIntervalEl.textContent = `${status.interval_seconds} сек`;
+  simulatorLastRunEl.textContent = formatDate(status.last_generated_at);
+  simulatorLastBatchEl.textContent = `${status.last_generated_count} показаний / ${status.last_generated_alerts} тревог`;
 }
 
 async function loadSensors() {
@@ -234,6 +253,7 @@ async function loadAll() {
     await Promise.all([
       loadServiceInfo(),
       loadSummary(),
+      loadSimulatorStatus(),
       loadSensors(),
       loadReadings(),
       loadAlerts(),
@@ -347,5 +367,60 @@ exportBtn.addEventListener("click", async () => {
     addLog(`Ошибка экспорта: ${error.message}`);
   }
 });
+
+startSimulatorBtn.addEventListener("click", async () => {
+  try {
+    await request("/api/simulator/start", {
+      method: "POST",
+    });
+
+    addLog("Симулятор запущен");
+    await loadAll();
+  } catch (error) {
+    addLog(`Не удалось запустить симулятор: ${error.message}`);
+  }
+});
+
+stopSimulatorBtn.addEventListener("click", async () => {
+  try {
+    await request("/api/simulator/stop", {
+      method: "POST",
+    });
+
+    addLog("Симулятор остановлен");
+    await loadAll();
+  } catch (error) {
+    addLog(`Не удалось остановить симулятор: ${error.message}`);
+  }
+});
+
+generateOnceBtn.addEventListener("click", async () => {
+  try {
+    const result = await request("/api/simulator/generate-once", {
+      method: "POST",
+    });
+
+    addLog(
+      `Сгенерировано: ${result.generated} показаний, тревог: ${result.generated_alerts}`,
+    );
+    await loadAll();
+  } catch (error) {
+    addLog(`Ошибка генерации данных: ${error.message}`);
+  }
+});
+
+let autoRefreshInProgress = false;
+setInterval(async () => {
+  if (autoRefreshInProgress) {
+    return;
+  }
+
+  autoRefreshInProgress = true;
+  try {
+    await loadAll();
+  } finally {
+    autoRefreshInProgress = false;
+  }
+}, 5000);
 
 loadAll();

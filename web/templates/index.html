@@ -53,6 +53,44 @@
         </div>
       </section>
 
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Симулятор датчиков</h2>
+          <span class="pill" id="simulatorBadge">unknown</span>
+        </div>
+
+        <div class="simulator-grid">
+          <div class="meta-box">
+            <div class="meta-label">Статус</div>
+            <div class="meta-value" id="simulatorStatus">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Интервал</div>
+            <div class="meta-value" id="simulatorInterval">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Последняя генерация</div>
+            <div class="meta-value" id="simulatorLastRun">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Последний пакет</div>
+            <div class="meta-value" id="simulatorLastBatch">—</div>
+          </div>
+        </div>
+
+        <div class="simulator-actions">
+          <button id="startSimulatorBtn" class="button">
+            Запустить симулятор
+          </button>
+          <button id="stopSimulatorBtn" class="button button-danger">
+            Остановить симулятор
+          </button>
+          <button id="generateOnceBtn" class="button button-secondary">
+            Сгенерировать один раз
+          </button>
+        </div>
+      </section>
+
       <section class="grid-two">
         <div class="panel">
           <h2>Добавить датчик</h2>

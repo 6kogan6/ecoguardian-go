@@ -1,0 +1,18 @@
+services:
+  ecoguardian:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecoguardian-app
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_PATH: "/data/ecoguardian.db"
+      SIMULATION_INTERVAL_SECONDS: "5"
+    volumes:
+      - ecoguardian_data:/data
+    restart: unless-stopped
+
+volumes:
+  ecoguardian_data:
